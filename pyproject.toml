@@ -58,7 +58,8 @@ env = { "CMAKE_PREFIX_PATH" = "${HOME}/.local" }
 args = ["-v"]
 
 [tool.cibuildwheel.macos]
-archs = "x86_64 arm64"
+archs = ["x86_64", "arm64"]
+skip = "pp37-*"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
