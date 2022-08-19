@@ -25,7 +25,7 @@ dynamic = ["version", "description"]
 add = "pybind11_project.add:main"
 
 [build-system]
-requires = ["py-build-cmake~=0.0.12", "pybind11", "pybind11-stubgen"]
+requires = ["py-build-cmake~=0.0.13", "pybind11", "pybind11-stubgen"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module]
@@ -63,7 +63,7 @@ environment = { "PY_BUILD_CMAKE_VERBOSE" = "1" }
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-build = "cp310-*"
+build = ["cp310-*", "pp39-*"]
 # skip = "pp37-*"
 
 [tool.pytest.ini_options]
