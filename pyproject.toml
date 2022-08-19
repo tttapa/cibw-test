@@ -62,9 +62,8 @@ build-frontend = "build"
 environment = { "PY_BUILD_CMAKE_VERBOSE" = "1" }
 
 [tool.cibuildwheel.macos]
-archs = ["universal2"]
-build = ["cp310-*", "pp39-*"]
-# skip = "pp37-*"
+archs = ["x86_64", "universal2"]
+skip = "pp37-*"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
