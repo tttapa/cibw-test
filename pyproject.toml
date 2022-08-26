@@ -40,7 +40,7 @@ exclude = []
 minimum_version = "3.17"
 build_type = "Release"
 source_path = "." # Containing CMakeLists.txt
-options = { "WITH_PY_STUBS:BOOL" = "Off" }
+options = { "WITH_PY_STUBS:BOOL" = "On" }
 args = ["-Wdev"]
 build_args = ["-j"]
 build_tool_args = []
