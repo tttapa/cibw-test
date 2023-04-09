@@ -1,5 +1,7 @@
 py-build-cmake.cross.toml
+*py-build-cmake.*.toml
 .*cache
+.venv
 build
 dist
 __pycache__

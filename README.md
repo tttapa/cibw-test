@@ -1,4 +1,4 @@
-# Example project using py-build-cmake and pybind11
+# py-build-cmake cibuildwheel example
 
-This is an example package with a C++ extension using
-[pybind11](https://github.com/pybind/pybind11).
+This is an example project using [py-build-cmake](https://github.com/tttapa/py-build-cmake)
+to build Python bindings for C++ code, with packages being built using [cibuildwheel](https://github.com/pypa/cibuildwheel).
