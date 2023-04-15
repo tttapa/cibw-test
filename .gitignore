@@ -4,6 +4,7 @@ py-build-cmake.cross.toml
 .venv
 build
 dist
+wheelhouse
 __pycache__
 *.pyc
 CMakeUserPresets.json
