@@ -1,0 +1,80 @@
+name: Cross Wheel
+
+on: [push, pull_request]
+
+jobs:
+  cross_build_wheels_linux:
+    name: Cross-build wheels for ${{ matrix.triple }}
+    runs-on: ubuntu-latest
+    container: ghcr.io/tttapa/docker-cross-python:${{ matrix.triple }}-py${{ matrix.python-version }}-1.0.4
+    strategy:
+      matrix:
+        triple: ['x86_64-centos7-linux-gnu', 'aarch64-rpi3-linux-gnu']
+        python-version: ['3.10', '3.11']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-conan-modules
+        with:
+          path: /root/.conan2
+          # Key is unique, to force updating cache, but is still restored
+          # because the prefix matches restore-keys.
+          key: ${{ runner.os }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-
+
+      - name: Install tools
+        run: python3 -m pip install -U pip build conan
+
+      - name: Prepare Conan configuration
+        run: |
+          conan profile detect
+          mkdir build
+          # Create a Conan profile for the host and specifically ask for a
+          # multi-config CMake generator
+          cp /opt/${{ matrix.triple }}/conan/profiles/${{ matrix.triple }} build/profile
+          echo 'tools.cmake.cmaketoolchain:generator="Ninja Multi-Config"' >> build/profile
+
+      - name: Install dependencies
+        run: |
+          for cfg in Debug Release; do
+            conan install . -of build -pr:h=build/profile --build=missing -s build_type=$cfg
+          done
+
+      - name: Patch Conan toolchain file
+        run: |
+          # See https://discourse.cmake.org/t/unexpected-interactions-between-cmake-sysroot-and-cmake-find-root-path-mode-package/7893
+          sed -i 's@CMAKE_PREFIX_PATH@CMAKE_FIND_ROOT_PATH@g' build/conan_toolchain.cmake
+
+      - name: Configure package
+        run: |
+          cat << EOF > build/conan-py-build-cmake.cross.toml
+          # Use Conan's toolchain to locate dependencies and include the
+          # host-specific toolchain file.
+          toolchain_file = "$PWD/build/conan_toolchain.cmake"
+          # Select the configurations to include in your package
+          [cmake]
+          generator = "Ninja Multi-Config"
+          config = ["Debug", "Release"]
+          # Use Conan's version of pybind11
+          [cmake.options]
+          USE_GLOBAL_PYBIND11 = "On"
+          EOF
+
+      - name: Build package
+        run: |
+          python3 -m build -w . \
+              -C--cross=/opt/${{ matrix.triple }}/cmake/${{ matrix.triple }}.py-build-cmake.cross.toml \
+              -C--cross=$PWD/build/conan-py-build-cmake.cross.toml
+        env:
+          LDFLAGS: '-static-libstdc++ -static-libgcc'
+
+      - name: Upload package
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./dist/*.whl
