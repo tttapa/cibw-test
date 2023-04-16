@@ -14,10 +14,8 @@ runs:
   steps:
     - name: Cache dependencies
       uses: actions/cache@v3
-      env:
-        cache-name: cache-conan-modules
       with:
-        path: /root/.conan2
+        path: ~/.conan2
         # Key is unique, to force updating cache, but is still restored
         # because the prefix matches restore-keys.
         key: ${{ runner.os }}-${{ inputs.host }}-${{ inputs.python-version }}-${{ github.sha }}
@@ -30,7 +28,7 @@ runs:
     - name: Prepare Conan configuration
       shell: bash
       run: |
-        conan profile detect
+        conan profile detect -f
         mkdir build
         # Create a Conan profile for the host and specifically ask for a
         # multi-config CMake generator
