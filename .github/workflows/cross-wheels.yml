@@ -7,14 +7,21 @@ env:
   PACKAGE_NAME: pybind11-project
 
 jobs:
-  generate-stubs:
-    name: Generate stubs
+  # First we build the wheels natively (build system == host system).
+  # This allows us to import the compiled modules, and automatically generate
+  # stub files for it.
+  # Those stub files can then later be included in the cross-compiled packages
+  # as well (because we can't generate them while cross-compiling).
+  # By building the native wheels first, we can also start testing while the
+  # cross-compiled versions are being built.
+  native-build-linux:
+    name: Build wheels for ${{ matrix.triple }} - ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     container: ghcr.io/tttapa/docker-cross-python:${{ matrix.triple }}-py${{ matrix.python-version }}-1.0.4
     strategy:
       matrix:
         triple: ['x86_64-centos7-linux-gnu']
-        python-version: ['3.11']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -29,20 +36,57 @@ jobs:
       - name: Upload stubs
         uses: actions/upload-artifact@v3
         with:
-          name: stubs
+          name: stubs-${{ matrix.python-version }}
           retention-days: 1
           path: stubs.tar
 
-  cross-build-wheels-linux:
+      - name: Upload package
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-native
+          path: ./dist/*.whl
+
+  # Testing is done in the official Python Docker container: https://hub.docker.com/_/python/
+  # This should match more closely to the environment that users might use.
+  # It also ensures that we're not accidentally depend on any libraries specific
+  # to the build container.
+  test-linux:
+    needs: [native-build-linux]
+    runs-on: ubuntu-latest
+    container: python:${{ matrix.python-version }}${{ matrix.python-suffix }}-bullseye
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        include:
+          - python-version: '3.12'
+            python-suffix: '-rc'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download wheels
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels-native
+          path: dist
+
+      - name: Test
+        run: |
+          python3 -m pip install -U pip cmake ninja
+          python3 -m pip install --find-links=dist "${PACKAGE_NAME}[test]==${PACKAGE_VERSION}"
+          pytest -rP
+
+  # After the native build, we have the stub files, and we can start cross-
+  # compiling for other architectures.
+  cross-build-linux:
     name: Cross-build wheels for ${{ matrix.triple }} - ${{ matrix.python-version }}
-    needs: [generate-stubs]
+    needs: [native-build-linux]
     runs-on: ubuntu-latest
     container: ghcr.io/tttapa/docker-cross-python:${{ matrix.triple }}-py${{ matrix.python-version }}-1.0.4
     strategy:
       matrix:
-        triple: ['x86_64-centos7-linux-gnu', 'aarch64-rpi3-linux-gnu']
+        triple: ['aarch64-rpi3-linux-gnu', 'armv7-neon-linux-gnueabihf', 'armv6-rpi-linux-gnueabihf']
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -50,7 +94,7 @@ jobs:
       - name: Download stubs
         uses: actions/download-artifact@v3
         with:
-          name: stubs
+          name: stubs-${{ matrix.python-version }}
 
       - name: Extract stubs
         run: tar xf stubs.tar
@@ -64,28 +108,5 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v3
         with:
-          name: wheels-${{ matrix.triple }}
+          name: wheels-cross
           path: ./dist/*.whl
-
-  test-linux:
-    needs: [cross-build-wheels-linux]
-    runs-on: ubuntu-latest
-    container: python:${{ matrix.python-version }}-bullseye
-    strategy:
-      matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Download wheels
-        uses: actions/download-artifact@v3
-        with:
-          name: wheels-x86_64-centos7-linux-gnu
-          path: dist
-
-      - name: Test
-        run: |
-          python3 -m pip install -U pip cmake ninja
-          python3 -m pip install --find-links=dist "${PACKAGE_NAME}[test]==${PACKAGE_VERSION}"
-          pytest -rP
