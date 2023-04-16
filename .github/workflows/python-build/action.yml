@@ -17,6 +17,12 @@ inputs:
       Name of the .tar file to export the Python stub files of the extension
       modules into. Requires that we can load the compiled modules in the native
       Python interpreter.
+  build-args:
+    required: false
+    default: '-w'
+    description: >
+      Arguments to pass to the PyPA build tool. By default, we build a wheel
+      directly. Set to '' to build a source distribution first.
 
 runs:
   using: composite
@@ -123,7 +129,7 @@ runs:
     - name: Build package
       shell: bash
       run: |
-        python3 -m build -w . \
+        python3 -m build ${{ inputs.build-args }} . \
           -C--cross=/opt/${{ inputs.host }}/cmake/${{ inputs.host }}.py-build-cmake.cross.toml \
           -C--cross=$PWD/build/conan-py-build-cmake.cross.toml
       env:
