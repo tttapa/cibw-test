@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(pybind11-project VERSION 0.1.5)
+project(pybind11-project VERSION 0.1.7)
 set(PY_VERSION_SUFFIX "")
 set(PY_FULL_VERSION ${PROJECT_VERSION}${PY_VERSION_SUFFIX})
 
@@ -44,9 +44,10 @@ if (WIN32)
 endif()
 
 # Generate stubs for the Python module
-option(WITH_PY_STUBS
-    "Generate Python stub files (.pyi) for the Python module." On)
-if (WITH_PY_STUBS AND NOT CMAKE_CROSSCOMPILING)
+option(WITHOUT_PY_STUBS
+       "Do not generate Python stub files (.pyi) for the Python module."
+       ${CMAKE_CROSSCOMPILING})
+if (NOT WITHOUT_PY_STUBS)
     include(cmake/Pybind11Stubgen.cmake)
     pybind11_stubgen(_add_module)
     pybind11_stubgen_install(_add_module ${PY_BUILD_CMAKE_MODULE_NAME})

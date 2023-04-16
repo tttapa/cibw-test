@@ -1,0 +1,95 @@
+name: Python build
+description: Cross-compile the Python package
+inputs:
+  host:
+    required: true
+  python-version:
+    required: true
+  export-stubs:
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-conan-modules
+      with:
+        path: /root/.conan2
+        # Key is unique, to force updating cache, but is still restored
+        # because the prefix matches restore-keys.
+        key: ${{ runner.os }}-${{ inputs.host }}-${{ inputs.python-version }}-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-${{ inputs.host }}-${{ inputs.python-version }}-
+
+    - name: Install tools
+      shell: bash
+      run: python3 -m pip install -U pip build conan
+
+    - name: Prepare Conan configuration
+      shell: bash
+      run: |
+        conan profile detect
+        mkdir build
+        # Create a Conan profile for the host and specifically ask for a
+        # multi-config CMake generator
+        cp /opt/${{ inputs.host }}/conan/profiles/${{ inputs.host }} build/profile
+        echo 'tools.cmake.cmaketoolchain:generator="Ninja Multi-Config"' >> build/profile
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        for cfg in Debug Release; do
+          conan install . -of build -pr:h=build/profile --build=missing -s build_type=$cfg
+        done
+
+    - name: Patch Conan toolchain file
+      shell: bash
+      run: |
+        # See https://discourse.cmake.org/t/unexpected-interactions-between-cmake-sysroot-and-cmake-find-root-path-mode-package/7893
+        sed -i 's@CMAKE_PREFIX_PATH@CMAKE_FIND_ROOT_PATH@g' build/conan_toolchain.cmake
+
+    - name: Configure package
+      shell: bash
+      run: |
+        cat << EOF > build/conan-py-build-cmake.cross.toml
+        # Use Conan's toolchain to locate dependencies and include the
+        # host-specific toolchain file.
+        toolchain_file = "$PWD/build/conan_toolchain.cmake"
+        # Select the configurations to include in your package
+        [cmake]
+        generator = "Ninja Multi-Config"
+        config = ["Debug", "Release"]
+        # Use Conan's version of pybind11
+        [cmake.options]
+        USE_GLOBAL_PYBIND11 = "On"
+        EOF
+
+    - name: Configure stubs
+      if: ${{ inputs.export-stubs != '' }}
+      shell: bash
+      run: |
+        cat << EOF >> build/conan-py-build-cmake.cross.toml
+        WITHOUT_PY_STUBS = "Off"
+        EOF
+
+    - name: Build package
+      shell: bash
+      run: |
+        python3 -m build -w . \
+          -C--cross=/opt/${{ inputs.host }}/cmake/${{ inputs.host }}.py-build-cmake.cross.toml \
+          -C--cross=$PWD/build/conan-py-build-cmake.cross.toml
+      env:
+        LDFLAGS: '-static-libstdc++ -static-libgcc'
+
+    - name: Export stubs
+      if: ${{ inputs.export-stubs != '' }}
+      shell: bash
+      run: |
+          python3 -m pip install -U py-build-cmake~=0.1.7
+          python3 -m py_build_cmake.cli \
+            --cross=/opt/${{ inputs.host }}/cmake/${{ inputs.host }}.py-build-cmake.cross.toml \
+            --cross=$PWD/build/conan-py-build-cmake.cross.toml \
+            install --component python_stubs -- --prefix staging/python-src
+          tar cf ${{ inputs.export-stubs }}.tar -C staging python-src

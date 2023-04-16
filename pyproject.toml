@@ -26,7 +26,7 @@ dynamic = ["version", "description"]
 add = "pybind11_project.add:main"
 
 [build-system]
-requires = ["py-build-cmake~=0.1.5", "pybind11", "pybind11-stubgen"]
+requires = ["py-build-cmake~=0.1.7", "pybind11", "pybind11-stubgen"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module]
@@ -41,12 +41,11 @@ exclude = []
 minimum_version = "3.18"
 build_type = "Release"
 source_path = "." # Containing CMakeLists.txt
-options = { "WITH_PY_STUBS:BOOL" = "On" }
 args = ["-Wdev"]
 build_args = ["-j"]
 build_tool_args = []
 install_args = ["--verbose"]
-install_components = ["python_modules"]
+install_components = ["python_modules", "python_stubs"]
 env = {}
 
 [tool.py-build-cmake.linux.cmake] # Linux-specific options

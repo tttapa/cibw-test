@@ -17,7 +17,7 @@ function(pybind11_stubgen_install target destination)
     install(DIRECTORY
         $<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>-stubs/
         EXCLUDE_FROM_ALL
-        COMPONENT python_modules
+        COMPONENT python_stubs
         DESTINATION ${destination}/$<TARGET_FILE_BASE_NAME:${target}>
         FILES_MATCHING REGEX "\.pyi$")
 
