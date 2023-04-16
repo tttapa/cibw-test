@@ -2,6 +2,10 @@ name: Cross Wheel
 
 on: [push, pull_request]
 
+env:
+  PACKAGE_VERSION: '0.1.7'
+  PACKAGE_NAME: pybind11-project
+
 jobs:
   generate-stubs:
     name: Generate stubs
@@ -62,3 +66,26 @@ jobs:
         with:
           name: wheels-${{ matrix.triple }}
           path: ./dist/*.whl
+
+  test-linux:
+    needs: [cross-build-wheels-linux]
+    runs-on: ubuntu-latest
+    container: python:${{ matrix.python-version }}-bullseye
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download wheels
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels-x86_64-centos7-linux-gnu
+          path: dist
+
+      - name: Test
+        run: |
+          python3 -m pip install -U pip cmake ninja
+          python3 -m pip install --find-links=dist "${PACKAGE_NAME}[test]==${PACKAGE_VERSION}"
+          pytest -rP

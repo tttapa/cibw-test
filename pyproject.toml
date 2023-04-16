@@ -22,6 +22,9 @@ urls = { "Documentation" = "https://tttapa.github.io/" }
 dependencies = []
 dynamic = ["version", "description"]
 
+[project.optional-dependencies]
+test = ["pytest~=7.2.0"]
+
 [project.scripts]
 add = "pybind11_project.add:main"
 
