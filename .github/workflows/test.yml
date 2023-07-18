@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        pypy: ''
+        pypy: ['']
         host: [x86_64-centos7-linux-gnu, armv7-neon-linux-gnueabihf, armv6-rpi-linux-gnueabihf, aarch64-rpi3-linux-gnu]
         include:
           - pypy: pypy
