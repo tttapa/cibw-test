@@ -31,7 +31,12 @@ jobs:
             host: armv6-rpi-linux-gnueabihf
     runs-on: ubuntu-latest
     name: ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
+    env:
+      MODULE_NAME: pip
 
     steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10' 
     - name: ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
-      run: echo ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
+      run: "$(python3 -c 'from importlib.metadata import version as v; print(v(\\\"${{ env.MODULE_NAME }}\\\"))')"
