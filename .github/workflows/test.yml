@@ -1,0 +1,35 @@
+name: Test
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        host: [x86_64-centos7-linux-gnu, armv7-neon-linux-gnueabihf, armv6-rpi-linux-gnueabihf, aarch64-rpi3-linux-gnu]
+        include:
+          - pypy: pypy
+            python-version: '3.8'
+            pypy-version: '7.3.11'
+          - pypy: pypy
+            python-version: '3.9'
+            pypy-version: '7.3.12'
+          - pypy: pypy
+            python-version: '3.10'
+            pypy-version: '7.3.12'
+        exclude:
+          - pypy: pypy
+            host: armv7-neon-linux-gnueabihf
+          - pypy: pypy
+            host: armv6-rpi-linux-gnueabihf
+    runs-on: ubuntu-latest
+    name: ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
+
+    steps:
+    - name: ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
+      run: echo ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
