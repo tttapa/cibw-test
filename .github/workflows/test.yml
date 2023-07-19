@@ -40,5 +40,5 @@ jobs:
         python-version: '3.10' 
     - name: ${{ matrix.pypy }}${{ matrix.pypy-version }} ${{ matrix.python-version }} ${{ matrix.host }}
       run: |
-        [ "23.0.1" == $(python3 -c 'from importlib.metadata import version as v; print(v("${{ env.MODULE_NAME }}"))') ]
+        [ "23.0.2" == $(python3 -c 'from importlib.metadata import version as v; print(v("${{ env.MODULE_NAME }}"))') ]
       shell: bash
